@@ -11,8 +11,12 @@ public:
     game();
     // prints the board
     void printBoard();
+    // act as print for javascript
+    std::string getBoardState();
     // make moves postition 1-9
-    bool makeMove(char playerSymbol, int position);
+    bool makeMove(std::string playerStr, int position);
     // check the winner
     char checkWinner();
+    // reset
+    void reset();
 };

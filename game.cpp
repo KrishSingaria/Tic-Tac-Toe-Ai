@@ -21,12 +21,15 @@ void game::printBoard(){
     }
 }
 
-bool game::makeMove(char playerSymbol, int position){
+bool game::makeMove(std::string playerStr, int position){
+    if(playerStr.empty()){
+        return false;
+    }
     int row = (position - 1)/ 3, col = (position-1)%3;
     if(board[row][col] != DEFAULT){
         return false; // not valid move
     }
-    board[row][col] = playerSymbol;
+    board[row][col] = playerStr[0];
     return true; // valid move
 }
 
@@ -59,4 +62,22 @@ char game::checkWinner(){
         return '_';
     }
     return 'D'; // Draw
+}
+
+std::string game::getBoardState(){
+    std::string str = "";
+    for (int i = 0; i < 9; i++)
+    {
+        str += board[i/3][i%3];
+    }
+    return str;
+}
+
+void game::reset() {
+  // Logic to fill the board with '_'
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      board[i][j] = '_';
+    }
+  }
 }

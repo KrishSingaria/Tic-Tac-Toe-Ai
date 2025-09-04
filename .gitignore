@@ -1,10 +1,10 @@
 # Ignore compiled executables
 *.exe
 *.out
-
 # Ignore object files produced during compilation
 *.o
+.hintrc
 
 # You can also ignore entire folders for your IDE
 # For example, if you use VS Code:
-# .vscode/
+.vscode/
