@@ -92,39 +92,39 @@ int game::getScore(char playerSymbol,char winner){
     }
 }
 
-int game::minimax(bool isMaximizing){
-    
+int game::minimax(bool isMaximizing, int depth) {
     char winner = this->checkWinner();
     if (winner != this->DEFAULT) {
-        return this->getScore(this->playerSymbol,winner);
+        int score = this->getScore(this->playerSymbol, winner);
+
+        if (score == 10) { // AI Win
+            return score - depth; // We want to win fast
+        } else if (score == -10) { // Player Win (AI Loss)
+            return score + depth; // We want to lose slow
+        } else { 
+            return 0;
+        }
     }
-
-    // This is inside your minimax function, right after the base case code.
     if (isMaximizing) {
-        int bestScore = -1000; // Initialize with a very low value
-
-        // Loop through all cells of the board
-        for (int i = 0; i < 3; ++i) {
-            for (int j = 0; j < 3; ++j) {
-                // Check if the cell is empty
+        int bestScore = -1000;
+        for (int i = 0; i < 3; i++){
+            for (int j = 0; j < 3; j++){
                 if (board[i][j] == this->DEFAULT) {
                     board[i][j] = this->aiSymbol;
-                    bestScore = std::max(bestScore, minimax(false));
+                    bestScore = std::max(bestScore, minimax(false, depth + 1));
                     board[i][j] = this->DEFAULT;
                 }
             }
         }
         return bestScore;
     } else {
-        // We'll handle the Minimizer's turn here later.
-        int bestScore = 1000; //high value
+        int bestScore = 1000;
 
-        for (int i = 0; i < 3; ++i) {
-            for (int j = 0; j < 3; ++j) {
-                // Check if the cell is empty
+        for (int i = 0; i < 3; i++){
+            for (int j = 0; j < 3; j++){
                 if (board[i][j] == this->DEFAULT) {
                     board[i][j] = this->playerSymbol;
-                    bestScore = std::min(bestScore, minimax(true));
+                    bestScore = std::min(bestScore, minimax(true, depth + 1));
                     board[i][j] = this->DEFAULT;
                 }
             }
@@ -157,10 +157,9 @@ std::pair<int, int> game::findBestMove(){
             // Check if the spot is empty
             if (board[i][j] == this->DEFAULT) {
                 board[i][j] = this->aiSymbol;
-                int moveScore = this->minimax(false); // 'false' because it's player's turn
+                int moveScore = this->minimax(false,0); // 'false' because it's player's turn
                 board[i][j] = this->DEFAULT;
     
-                
                 if(moveScore > bestScore){
                     bestScore = moveScore;
                     bestMove = std::make_pair(i,j);

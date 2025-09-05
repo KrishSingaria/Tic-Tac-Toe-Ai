@@ -24,7 +24,7 @@ public:
     // score for ai part 
     int getScore(char playerSymbol,char winner);
     // ai algo
-    int minimax(bool isMaximizing);
+    int minimax(bool isMaximizing, int depth); // Add the depth parameter
     // for best ai moves
     std::pair<int, int> findBestMove();
 };
