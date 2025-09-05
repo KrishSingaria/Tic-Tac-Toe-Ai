@@ -22,10 +22,25 @@ body {
 }
 
 #symbol-selection {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 20px; /* Adds some space below the buttons */
+  display: flex;
+  flex-direction: column; /* Stacks the title and the button container vertically */
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+#button-container {
+  display: flex;
+  flex-direction: row; /* Makes the items inside (the buttons) side-by-side */
+}
+
+/* This targets only the symbol buttons */
+#symbol-selection .symbol-button {
+  font-size: 50px;
+  font-weight: bold;
+  width: 100px; /* Kept them large */
+  height: 100px;
+  margin: 0 10px; /* Adds space between the buttons */
+  border-radius: 8px; /* This creates the "smooth square" effect */
 }
 
 #symbol-selection.hidden {
