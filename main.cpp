@@ -7,12 +7,19 @@ using namespace emscripten;
 
 // This block exposes our C++ Game class to JavaScript
 EMSCRIPTEN_BINDINGS(my_game_module) {
+
+    // First, teach Embind what a "pair of ints" is and how to build it
+    value_object<std::pair<int, int>>("IntPair")
+        .field("first", &std::pair<int, int>::first)
+        .field("second", &std::pair<int, int>::second);
+
     class_<game>("Game")
         .constructor<>() // This exposes the constructor (e.g., new Game())
         .function("makeMove", &game::makeMove)
         .function("checkWinner", &game::checkWinner)
         .function("getBoardState", &game::getBoardState)
-        .function("reset", &game::reset);
+        .function("reset", &game::reset)
+        .function("findBestMove", &game::findBestMove);
         // We can't easily use printBoard, since it prints to the C++ console.
         // Let's add a new function to get the board state instead!
 };

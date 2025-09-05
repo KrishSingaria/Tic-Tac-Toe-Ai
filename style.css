@@ -1,0 +1,127 @@
+/* Import a nice, clean font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+/* Define a modern color palette using CSS Variables */
+:root {
+    --background-color: #ecf0f1; /* Clouds */
+    --grid-color: #2c3e50;       /* Midnight Blue */
+    --text-color: #34495e;       /* Wet Asphalt */
+    --x-color: #e74c3c;          /* Alizarin Red */
+    --o-color: #3498db;          /* Peter River Blue */
+    --hover-bg: #bdc3c7;         /* Silver */
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+#symbol-selection {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 20px; /* Adds some space below the buttons */
+}
+
+#symbol-selection.hidden {
+    display: none;
+}
+
+h1, h2 {
+  color: #333;
+  text-align: center; /* Ensures titles are centered */
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Use fractions for a flexible grid */
+    
+    /* This makes the board responsive! */
+    width: 90vw;           /* It will be 90% of the viewport (screen) width */
+    max-width: 450px;      /* But it won't get bigger than 450px on large screens */
+    aspect-ratio: 1 / 1;   /* This CSS magic keeps it a perfect square */
+
+    gap: 10px; /* Creates the grid lines with the background color */
+    padding: 10px;
+    border-radius: 10px;
+    background-color: var(--grid-color);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+}
+#board.hidden {
+    display: none;
+}
+.square {
+  /* This flexbox setup is what prevents the distortion */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* ... (the rest of the styles are fine) ... */
+  background-color: var(--background-color);
+  border-radius: 5px;
+  font-size: 10vw;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.square:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Give X and O their own colors */
+.x-symbol { color: var(--x-color); }
+.o-symbol { color: var(--o-color); }
+
+/* Add a subtle animation when a symbol appears */
+.square:not(:empty) {
+    animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.320, 1.275);
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+#status {
+    margin: 20px 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+    height: 30px;
+}
+
+.symbol-button, #restartButton {
+    font-size: 1.2rem;
+    font-family: 'Poppins', sans-serif;
+    padding: 10px 20px;
+    margin: 10px;
+    cursor: pointer;
+    border: 2px solid var(--grid-color);
+    border-radius: 8px;
+    background-color: white;
+    color: var(--grid-color);
+    transition: all 0.2s ease-in-out;
+}
+
+.symbol-button:hover, #restartButton:hover {
+    background-color: var(--grid-color);
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.hidden {
+    display: none;
+}
+
+/* This is the media query for larger screens like tablets and desktops */
+@media (min-width: 500px) {
+    .square {
+        font-size: 4rem; /* Use a larger, fixed font size on big screens */
+    }
+}

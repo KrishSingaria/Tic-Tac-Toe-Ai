@@ -951,14 +951,21 @@ async function createWasm() {
   var __abort_js = () =>
       abort('native code called abort()');
 
-  var AsciiToString = (ptr) => {
-      var str = '';
-      while (1) {
-        var ch = HEAPU8[ptr++];
-        if (!ch) return str;
-        str += String.fromCharCode(ch);
+  var structRegistrations = {
+  };
+  
+  var runDestructors = (destructors) => {
+      while (destructors.length) {
+        var ptr = destructors.pop();
+        var del = destructors.pop();
+        del(ptr);
       }
     };
+  
+  /** @suppress {globalThis} */
+  function readPointer(pointer) {
+      return this.fromWireType(HEAPU32[((pointer)>>2)]);
+    }
   
   var awaitingDependencies = {
   };
@@ -968,6 +975,121 @@ async function createWasm() {
   
   var typeDependencies = {
   };
+  
+  var InternalError =  class InternalError extends Error { constructor(message) { super(message); this.name = 'InternalError'; }};
+  var throwInternalError = (message) => { throw new InternalError(message); };
+  var whenDependentTypesAreResolved = (myTypes, dependentTypes, getTypeConverters) => {
+      myTypes.forEach((type) => typeDependencies[type] = dependentTypes);
+  
+      function onComplete(typeConverters) {
+        var myTypeConverters = getTypeConverters(typeConverters);
+        if (myTypeConverters.length !== myTypes.length) {
+          throwInternalError('Mismatched type converter count');
+        }
+        for (var i = 0; i < myTypes.length; ++i) {
+          registerType(myTypes[i], myTypeConverters[i]);
+        }
+      }
+  
+      var typeConverters = new Array(dependentTypes.length);
+      var unregisteredTypes = [];
+      var registered = 0;
+      dependentTypes.forEach((dt, i) => {
+        if (registeredTypes.hasOwnProperty(dt)) {
+          typeConverters[i] = registeredTypes[dt];
+        } else {
+          unregisteredTypes.push(dt);
+          if (!awaitingDependencies.hasOwnProperty(dt)) {
+            awaitingDependencies[dt] = [];
+          }
+          awaitingDependencies[dt].push(() => {
+            typeConverters[i] = registeredTypes[dt];
+            ++registered;
+            if (registered === unregisteredTypes.length) {
+              onComplete(typeConverters);
+            }
+          });
+        }
+      });
+      if (0 === unregisteredTypes.length) {
+        onComplete(typeConverters);
+      }
+    };
+  var __embind_finalize_value_object = (structType) => {
+      var reg = structRegistrations[structType];
+      delete structRegistrations[structType];
+  
+      var rawConstructor = reg.rawConstructor;
+      var rawDestructor = reg.rawDestructor;
+      var fieldRecords = reg.fields;
+      var fieldTypes = fieldRecords.map((field) => field.getterReturnType).
+                concat(fieldRecords.map((field) => field.setterArgumentType));
+      whenDependentTypesAreResolved([structType], fieldTypes, (fieldTypes) => {
+        var fields = {};
+        fieldRecords.forEach((field, i) => {
+          var fieldName = field.fieldName;
+          var getterReturnType = fieldTypes[i];
+          var optional = fieldTypes[i].optional;
+          var getter = field.getter;
+          var getterContext = field.getterContext;
+          var setterArgumentType = fieldTypes[i + fieldRecords.length];
+          var setter = field.setter;
+          var setterContext = field.setterContext;
+          fields[fieldName] = {
+            read: (ptr) => getterReturnType.fromWireType(getter(getterContext, ptr)),
+            write: (ptr, o) => {
+              var destructors = [];
+              setter(setterContext, ptr, setterArgumentType.toWireType(destructors, o));
+              runDestructors(destructors);
+            },
+            optional,
+          };
+        });
+  
+        return [{
+          name: reg.name,
+          fromWireType: (ptr) => {
+            var rv = {};
+            for (var i in fields) {
+              rv[i] = fields[i].read(ptr);
+            }
+            rawDestructor(ptr);
+            return rv;
+          },
+          toWireType: (destructors, o) => {
+            // todo: Here we have an opportunity for -O3 level "unsafe" optimizations:
+            // assume all fields are present without checking.
+            for (var fieldName in fields) {
+              if (!(fieldName in o) && !fields[fieldName].optional) {
+                throw new TypeError(`Missing field: "${fieldName}"`);
+              }
+            }
+            var ptr = rawConstructor();
+            for (fieldName in fields) {
+              fields[fieldName].write(ptr, o[fieldName]);
+            }
+            if (destructors !== null) {
+              destructors.push(rawDestructor, ptr);
+            }
+            return ptr;
+          },
+          readValueFromPointer: readPointer,
+          destructorFunction: rawDestructor,
+        }];
+      });
+    };
+
+  var AsciiToString = (ptr) => {
+      var str = '';
+      while (1) {
+        var ch = HEAPU8[ptr++];
+        if (!ch) return str;
+        str += String.fromCharCode(ch);
+      }
+    };
+  
+  
+  
   
   var BindingError =  class BindingError extends Error { constructor(message) { super(message); this.name = 'BindingError'; }};
   var throwBindingError = (message) => { throw new BindingError(message); };
@@ -1167,8 +1289,6 @@ async function createWasm() {
       return registeredInstances[ptr];
     };
   
-  var InternalError =  class InternalError extends Error { constructor(message) { super(message); this.name = 'InternalError'; }};
-  var throwInternalError = (message) => { throw new InternalError(message); };
   
   var makeClassHandle = (prototype, record) => {
       if (!record.ptrType || !record.ptr) {
@@ -1625,10 +1745,6 @@ async function createWasm() {
     }
   
   
-  /** @suppress {globalThis} */
-  function readPointer(pointer) {
-      return this.fromWireType(HEAPU32[((pointer)>>2)]);
-    }
   
   var init_RegisteredPointer = () => {
       Object.assign(RegisteredPointer.prototype, {
@@ -1780,46 +1896,6 @@ async function createWasm() {
       throw new UnboundTypeError(`${message}: ` + unboundTypes.map(getTypeName).join([', ']));
     };
   
-  
-  
-  
-  var whenDependentTypesAreResolved = (myTypes, dependentTypes, getTypeConverters) => {
-      myTypes.forEach((type) => typeDependencies[type] = dependentTypes);
-  
-      function onComplete(typeConverters) {
-        var myTypeConverters = getTypeConverters(typeConverters);
-        if (myTypeConverters.length !== myTypes.length) {
-          throwInternalError('Mismatched type converter count');
-        }
-        for (var i = 0; i < myTypes.length; ++i) {
-          registerType(myTypes[i], myTypeConverters[i]);
-        }
-      }
-  
-      var typeConverters = new Array(dependentTypes.length);
-      var unregisteredTypes = [];
-      var registered = 0;
-      dependentTypes.forEach((dt, i) => {
-        if (registeredTypes.hasOwnProperty(dt)) {
-          typeConverters[i] = registeredTypes[dt];
-        } else {
-          unregisteredTypes.push(dt);
-          if (!awaitingDependencies.hasOwnProperty(dt)) {
-            awaitingDependencies[dt] = [];
-          }
-          awaitingDependencies[dt].push(() => {
-            typeConverters[i] = registeredTypes[dt];
-            ++registered;
-            if (registered === unregisteredTypes.length) {
-              onComplete(typeConverters);
-            }
-          });
-        }
-      });
-      if (0 === unregisteredTypes.length) {
-        onComplete(typeConverters);
-      }
-    };
   var __embind_register_class = (rawType,
                              rawPointerType,
                              rawConstPointerType,
@@ -1939,13 +2015,6 @@ async function createWasm() {
   
   
   
-  var runDestructors = (destructors) => {
-      while (destructors.length) {
-        var ptr = destructors.pop();
-        var del = destructors.pop();
-        del(ptr);
-      }
-    };
   
   
   function usesDestructorStack(argTypes) {
@@ -2752,6 +2821,49 @@ async function createWasm() {
     };
 
   
+  
+  var __embind_register_value_object = (
+      rawType,
+      name,
+      constructorSignature,
+      rawConstructor,
+      destructorSignature,
+      rawDestructor
+    ) => {
+      structRegistrations[rawType] = {
+        name: AsciiToString(name),
+        rawConstructor: embind__requireFunction(constructorSignature, rawConstructor),
+        rawDestructor: embind__requireFunction(destructorSignature, rawDestructor),
+        fields: [],
+      };
+    };
+
+  
+  
+  var __embind_register_value_object_field = (
+      structType,
+      fieldName,
+      getterReturnType,
+      getterSignature,
+      getter,
+      getterContext,
+      setterArgumentType,
+      setterSignature,
+      setter,
+      setterContext
+    ) => {
+      structRegistrations[structType].fields.push({
+        fieldName: AsciiToString(fieldName),
+        getterReturnType,
+        getter: embind__requireFunction(getterSignature, getter),
+        getterContext,
+        setterArgumentType,
+        setter: embind__requireFunction(setterSignature, setter),
+        setterContext,
+      });
+    };
+
+  
   var __embind_register_void = (rawType, name) => {
       name = AsciiToString(name);
       registerType(rawType, {
@@ -3422,6 +3534,8 @@ var wasmImports = {
   /** @export */
   _abort_js: __abort_js,
   /** @export */
+  _embind_finalize_value_object: __embind_finalize_value_object,
+  /** @export */
   _embind_register_bigint: __embind_register_bigint,
   /** @export */
   _embind_register_bool: __embind_register_bool,
@@ -3443,6 +3557,10 @@ var wasmImports = {
   _embind_register_std_string: __embind_register_std_string,
   /** @export */
   _embind_register_std_wstring: __embind_register_std_wstring,
+  /** @export */
+  _embind_register_value_object: __embind_register_value_object,
+  /** @export */
+  _embind_register_value_object_field: __embind_register_value_object_field,
   /** @export */
   _embind_register_void: __embind_register_void,
   /** @export */
