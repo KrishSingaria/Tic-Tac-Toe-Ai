@@ -1,4 +1,6 @@
 # C++ Tic-Tac-Toe with a WebAssembly AI
+Play Tic-Tac-Toe here [link](https://krishsingaria.github.io/Tic-Tac-Toe-Ai/)
+
 
 A fully playable Tic-Tac-Toe game that runs in any modern web browser. The game features a clean, responsive UI and an unbeatable AI opponent. The core game logic and the Minimax AI are written entirely in C++ and compiled to WebAssembly (Wasm) using Emscripten.
 
