@@ -30,8 +30,8 @@ To build and run this project yourself, you will need **Git** and the **Emscript
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
-cd <your-repo-folder>
+git clone https://github.com/KrishSingaria/Tic-Tac-Toe-Ai.git
+cd https://github.com/KrishSingaria/Tic-Tac-Toe-Ai.git
 ```
 
 ### 2\. Configure the Build Script
